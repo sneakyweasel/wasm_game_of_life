@@ -2,6 +2,7 @@ extern crate cfg_if;
 extern crate wasm_bindgen;
 extern crate web_sys;
 
+mod quantum;
 mod utils;
 
 use std::fmt;
@@ -14,14 +15,18 @@ pub struct Timer<'a> {
 
 impl<'a> Timer<'a> {
     pub fn new(name: &'a str) -> Timer<'a> {
-        console::time_with_label(name);
+        unsafe {
+            console::time_with_label(name);
+        }
         Timer { name }
     }
 }
 
 impl<'a> Drop for Timer<'a> {
     fn drop(&mut self) {
-        console::time_end_with_label(self.name);
+        unsafe {
+            console::time_end_with_label(self.name);
+        }
     }
 }
 
@@ -71,17 +76,9 @@ impl Universe {
     fn live_neighbor_count(&self, row: u32, column: u32) -> u8 {
         let mut count = 0;
 
-        let north = if row == 0 {
-            self.height - 1
-        } else {
-            row - 1
-        };
+        let north = if row == 0 { self.height - 1 } else { row - 1 };
 
-        let south = if row == self.height - 1 {
-            0
-        } else {
-            row + 1
-        };
+        let south = if row == self.height - 1 { 0 } else { row + 1 };
 
         let west = if column == 0 {
             self.width - 1
