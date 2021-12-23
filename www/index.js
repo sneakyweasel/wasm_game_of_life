@@ -2,8 +2,8 @@ import { Universe } from "wasm-game-of-life";
 import { memory } from "wasm-game-of-life/wasm_game_of_life_bg";
 
 const CELL_SIZE = 10; // px
+const ENTITY_SIZE = 3; // r, g, b values are from 0 to 255.
 const GRID_COLOR = "#CCCCCC";
-const ENTITY_SIZE = 3;
 
 // Construct the universe, and get its width and height.
 const universe = Universe.new();
@@ -101,6 +101,7 @@ playPauseButton.addEventListener("click", event => {
   }
 });
 
+// Render the grid lines.
 const drawGrid = () => {
   ctx.beginPath();
   ctx.strokeStyle = GRID_COLOR;
@@ -124,13 +125,13 @@ const getIndex = (row, column) => {
   return (row * width + column) * ENTITY_SIZE;
 };
 
+// Render cells.
 const drawCells = () => {
   const cellsPtr = universe.cells();
   const cells = new Uint8Array(memory.buffer, cellsPtr, width * height * ENTITY_SIZE);
 
   ctx.beginPath();
 
-  // Alive cells.
   for (let row = 0; row < height; row++) {
     for (let col = 0; col < width; col++) {
       const idx = getIndex(row, col);
@@ -151,6 +152,7 @@ const drawCells = () => {
   ctx.stroke();
 };
 
+// Click handler.
 canvas.addEventListener("click", event => {
   const boundingRect = canvas.getBoundingClientRect();
 
