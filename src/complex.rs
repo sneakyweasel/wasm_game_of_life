@@ -2,8 +2,8 @@ use std::f32::consts::PI;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Complex {
-    re: f32,
-    im: f32,
+    pub re: f32,
+    pub im: f32,
 }
 
 impl Complex {

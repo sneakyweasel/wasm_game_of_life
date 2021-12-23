@@ -135,33 +135,6 @@
 //     }
 // }
 
-// #[derive(Clone, Debug)]
-// pub struct Game {
-//     pub data: Vec<f32>,
-//     pub qd: QuantumData,
-//     color_map: ColorMap,
-// }
-
-// impl Game {
-//     pub fn new(qd: QuantumData) -> Game {
-//         Game {
-//             qd,
-//             data: Vec::new(),
-//             color_map: ColorMap::new(),
-//         }
-//     }
-//     pub fn width(&self) -> usize {
-//         self.qd.width
-//     }
-
-//     pub fn height(&self) -> usize {
-//         self.qd.height
-//     }
-
-//     pub fn set_amp_color_map(&mut self) {
-//         self.color_map = ColorMap::new();
-//     }
-
 //     // pub fn update(&mut self) {
 //     //     let show_potential = false;
 //     //     for y in 0..self.qd.height {

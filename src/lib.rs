@@ -126,19 +126,36 @@ impl Universe {
         }
     }
 
+    /// Initialize universe.
+    pub fn setup(&mut self) {
+        self.setup_sink_mult();
+        self.add_walls();
+        self.ensure_no_positive_potential();
+    }
+
     /// Process the next generation of the universe.
     pub fn tick(&mut self) {
         // let _timer = Timer::new("Universe::tick");
         let mut next = self.cells.clone();
-        for row in 0..self.height {
-            for col in 0..self.width {
-                let idx = self.get_index(row, col);
-                // let cell = self.cells[idx];
-                let next_cell = Cell::new(Color::random());
-                next[idx] = next_cell;
+        self.step();
+        self.cells = next;
+    }
+
+    pub fn step(&mut self) {
+        let x_slope = 0.0;
+        let y_slope = 0.0;
+        self.reset_potential_cache(x_slope, y_slope);
+
+        for y in 1..self.height - 1 {
+            for x in 1..self.width - 1 {
+                let sink_mult = self.sink_mult.get(x, y);
+                let potential_cache = self.potential_cache.get(x, y);
+                if !self.walls.get(x, y) {
+                    self.complex_field
+                        .process(x, y, sink_mult, self.dt, potential_cache);
+                }
             }
         }
-        self.cells = next;
     }
 
     /// Get the width of the universe.
