@@ -1,5 +1,9 @@
-use std::fmt;
+extern crate wasm_bindgen;
 
+use std::fmt;
+use wasm_bindgen::prelude::*;
+
+#[wasm_bindgen]
 #[derive(Clone, Debug)]
 pub struct FloatField {
     pub width: usize,

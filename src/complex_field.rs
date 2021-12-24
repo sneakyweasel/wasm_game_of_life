@@ -1,5 +1,10 @@
 use complex::Complex;
 
+extern crate wasm_bindgen;
+
+use wasm_bindgen::prelude::*;
+
+#[wasm_bindgen]
 #[derive(Clone, Debug, PartialEq)]
 pub struct ComplexField {
     pub width: usize,

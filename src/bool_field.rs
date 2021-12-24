@@ -1,3 +1,8 @@
+extern crate wasm_bindgen;
+
+use wasm_bindgen::prelude::*;
+
+#[wasm_bindgen]
 #[derive(Clone, Debug)]
 pub struct BoolField {
     pub width: usize,

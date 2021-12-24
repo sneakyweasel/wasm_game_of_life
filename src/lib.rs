@@ -128,6 +128,11 @@ impl Universe {
 
     /// Initialize universe.
     pub fn setup(&mut self) {
+        self.dt = 0.1;
+        self.max_tilt = 2.5;
+        let scale = 3.0;
+        let qft = 5;
+        self.add_gaussian(25, 25, 1.0, 0.0, 0.0, 1.0);
         self.setup_sink_mult();
         self.add_walls();
         self.ensure_no_positive_potential();
@@ -187,8 +192,13 @@ impl Universe {
     }
 
     /// Get the cells of the universe
+    // pub fn cells(&self) -> *const Cell {
+    //     self.cells.as_ptr()
+    // }
+
+    /// Get the cells of the universe
     pub fn cells(&self) -> *const Cell {
-        self.cells.as_ptr()
+        self.potential_cache.as_ptr()
     }
 
     /// toggle the state of the specified cell

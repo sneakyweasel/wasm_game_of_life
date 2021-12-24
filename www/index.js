@@ -7,6 +7,8 @@ const GRID_COLOR = "#CCCCCC";
 
 // Construct the universe, and get its width and height.
 const universe = Universe.new();
+universe.setup();
+console.log(universe);
 const width = universe.width();
 const height = universe.height();
 
