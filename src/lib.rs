@@ -10,6 +10,7 @@ mod complex;
 mod coord;
 mod grid;
 mod quantum;
+mod timer;
 mod utils;
 
 use cell::Cell;
@@ -21,35 +22,16 @@ use priority_queue::PriorityQueue;
 use std::f32::consts::PI;
 use std::fmt;
 use wasm_bindgen::prelude::*;
-use web_sys::console;
 
 #[derive(PartialEq, Eq, Hash)]
 pub struct Pixel {
     coord: Coord,
-    d: i32,
+    val: i32,
 }
 
 impl Pixel {
-    pub fn new(coord: Coord, d: i32) -> Self {
-        Pixel { coord, d }
-    }
-}
-
-pub struct Timer<'a> {
-    name: &'a str,
-}
-
-impl<'a> Timer<'a> {
-    pub fn new(name: &'a str) -> Timer<'a> {
-        console::time_with_label(name);
-
-        Timer { name }
-    }
-}
-
-impl<'a> Drop for Timer<'a> {
-    fn drop(&mut self) {
-        console::time_end_with_label(self.name);
+    pub fn new(coord: Coord, val: i32) -> Self {
+        Pixel { coord, val }
     }
 }
 
@@ -129,7 +111,7 @@ impl Universe {
         self.max_tilt = 2.5;
         let _scale = 3.0;
         let _qft = 5;
-        self.add_gaussian(25, 25, 1.0, 0.0, 0.0, 1.0);
+        self.add_gaussian(Coord::new(25, 25), 1.0, 0.0, 0.0, 1.0);
         self.setup_sink_mult();
         self.add_walls();
         self.ensure_no_positive_potential();
@@ -171,6 +153,7 @@ impl Universe {
                 //               + potential_cache * cx.im));
 
                 //   self.set(x, y, Complex::new(re, im));
+
                 // if !self.walls.get(coord) {
                 //     self.complex_field
                 //         .process(x, y, sink_mult, self.dt, potential_cache);
@@ -260,13 +243,13 @@ impl Universe {
             }
             while !queue.is_empty() {
                 let p: Pixel = queue.pop().unwrap().0;
-                if *self.sink_mult.get(p.coord) > p.d as f32 {
-                    self.sink_mult.set(p.coord, p.d as f32);
+                if *self.sink_mult.get(p.coord) > p.val as f32 {
+                    self.sink_mult.set(p.coord, p.val as f32);
 
                     for dx in (-1..1).step_by(2) {
                         for dy in (-1..1).step_by(2) {
                             let q_coord = Coord::new(dx, dy).add(p.coord);
-                            let q: Pixel = Pixel::new(q_coord, p.d + 1);
+                            let q: Pixel = Pixel::new(q_coord, p.val + 1);
                             if q.coord.x >= 0
                                 && q.coord.x < self.width as i32
                                 && q.coord.y >= 0
@@ -292,23 +275,23 @@ impl Universe {
     }
 
     // Add a gaussian distribution to the complex field
-    pub fn add_gaussian(&mut self, xc: i32, yc: i32, sigma: f32, fx: f32, fy: f32, a_scale: f32) {
+    pub fn add_gaussian(&mut self, c: Coord, sigma: f32, fx: f32, fy: f32, a_scale: f32) {
         let a: f32 = a_scale * 2.0 * PI;
         let d: f32 = 4.0 * sigma * sigma;
         let omega_x = 2.0 * PI * fx; // seems wrong
         let omega_y = 2.0 * PI * fy; // seems wrong
 
+        // TODO: use neighbourgs to speed this up
         for x in 1..&self.width - 1 {
             for y in 1..&self.height - 1 {
                 let coord = Coord::new(x as i32, y as i32);
-                let r2 =
-                    ((x as i32) - xc) * ((x as i32) - xc) + ((y as i32) - yc) * ((y as i32) - yc);
+                let r2: f32 = ((coord.x - c.x).pow(2) + (coord.y - c.y).pow(2)) as f32;
                 let re = a
-                    * f32::exp(-(r2 as f32) / d)
+                    * f32::exp(-r2 / d)
                     * (omega_x * (x as f32) / (self.width as f32)).cos()
                     * (omega_y * (y as f32) / (self.height as f32)).cos();
                 let im = a
-                    * f32::exp(-(r2 as f32) / d)
+                    * f32::exp(-r2 / d)
                     * (omega_x * (x as f32) / (self.width as f32)).sin()
                     * (omega_y * (y as f32) / (self.height as f32)).sin();
 
@@ -319,16 +302,17 @@ impl Universe {
         }
     }
 
-    /// Get potential at a given point
-    fn get_potential(&self, coord: Coord) -> f32 {
-        *self.level_design_potential.get(coord)
-    }
+    // /// Get potential at a given point
+    // fn get_potential(&self, coord: Coord) -> f32 {
+    //     *self.level_design_potential.get(coord)
+    // }
 
     /// Add potential to a given point
-    fn add_potential(&mut self, coord: Coord, pot: f32) {
-        let orig = self.get_potential(coord);
-        self.level_design_potential.set(coord, orig + pot)
-    }
+    // fn add_potential(&mut self, coord: Coord, pot: f32) {
+    //     *self.level_design_potential.get(coord)
+    //     let orig = self.get_potential(coord);
+    //     self.level_design_potential.set(coord, orig + pot)
+    // }
 
     /// Add potential cone starting from a given point
     pub fn add_potential_cone(&mut self, xc: i32, yc: i32, radius: f32, depth: f32) {
@@ -340,7 +324,8 @@ impl Universe {
                 let r = ((dx * dx + dy * dy) as f32).sqrt();
                 if r < radius {
                     let pot = r / radius * depth;
-                    self.add_potential(coord, pot);
+                    let orig = *self.level_design_potential.get(coord);
+                    self.level_design_potential.set(coord, orig + pot);
                 }
             }
         }
