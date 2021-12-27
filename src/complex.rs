@@ -7,7 +7,7 @@ pub struct Complex {
 }
 
 impl Complex {
-    pub fn ZERO() -> Complex {
+    pub fn zero() -> Complex {
         Complex { re: 0.0, im: 0.0 }
     }
 

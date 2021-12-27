@@ -1,7 +1,6 @@
 extern crate wasm_bindgen;
 
 use color::Color;
-use complex::Complex;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]

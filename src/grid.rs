@@ -25,7 +25,7 @@ impl<T> Grid<T> {
     }
 
     // Height
-    pub fn height(&self) -> usize {
-        self.data.len() / self.width
-    }
+    // pub fn height(&self) -> usize {
+    //     self.data.len() / self.width
+    // }
 }

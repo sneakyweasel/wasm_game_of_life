@@ -12,7 +12,7 @@ pub struct Color {
 }
 
 impl Color {
-    pub fn WHITE() -> Color {
+    pub fn white() -> Color {
         Color {
             r: 255,
             g: 255,
