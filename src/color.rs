@@ -1,5 +1,6 @@
 extern crate wasm_bindgen;
 
+use complex::Complex;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -21,6 +22,13 @@ impl Color {
 
     pub fn new(r: u8, g: u8, b: u8) -> Color {
         Color { r, g, b }
+    }
+
+    pub fn from_complex(c: Complex) -> Color {
+        let r = (c.re * 255.0).round() as u8;
+        let g = (c.im * 255.0).round() as u8;
+        let b = ((255 - (r + g)) as f32 / 2.0).round() as u8;
+        Color::new(r, g, b)
     }
 
     pub fn random() -> Color {

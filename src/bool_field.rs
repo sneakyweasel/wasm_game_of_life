@@ -1,12 +1,11 @@
-extern crate wasm_bindgen;
+// extern crate wasm_bindgen;
+// use wasm_bindgen::prelude::*;
+// #[wasm_bindgen]
 
-use wasm_bindgen::prelude::*;
-
-#[wasm_bindgen]
 #[derive(Clone, Debug)]
 pub struct BoolField {
     pub width: usize,
-    data: Vec<bool>,
+    pub data: Vec<bool>,
 }
 
 impl BoolField {

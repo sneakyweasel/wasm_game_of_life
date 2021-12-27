@@ -1,14 +1,13 @@
 use complex::Complex;
 
-extern crate wasm_bindgen;
+// extern crate wasm_bindgen;
+// use wasm_bindgen::prelude::*;
+// #[wasm_bindgen]
 
-use wasm_bindgen::prelude::*;
-
-#[wasm_bindgen]
 #[derive(Clone, Debug, PartialEq)]
 pub struct ComplexField {
     pub width: usize,
-    data: Vec<Complex>,
+    pub data: Vec<Complex>,
 }
 
 impl ComplexField {

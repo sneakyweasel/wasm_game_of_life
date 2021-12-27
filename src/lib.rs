@@ -10,6 +10,7 @@ mod color;
 mod complex;
 mod complex_field;
 mod float_field;
+mod grid;
 mod quantum;
 mod utils;
 
@@ -19,6 +20,7 @@ use color::Color;
 use complex::Complex;
 use complex_field::ComplexField;
 use float_field::FloatField;
+use grid::Grid;
 use priority_queue::PriorityQueue;
 use std::f32::consts::PI;
 use std::fmt;
@@ -198,7 +200,7 @@ impl Universe {
 
     /// Get the cells of the universe
     pub fn cells(&self) -> *const Cell {
-        self.potential_cache.as_ptr()
+        self.cells.as_ptr()
     }
 
     /// toggle the state of the specified cell

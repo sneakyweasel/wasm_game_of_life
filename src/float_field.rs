@@ -1,13 +1,13 @@
-extern crate wasm_bindgen;
+// extern crate wasm_bindgen;
+// use wasm_bindgen::prelude::*;
+// #[wasm_bindgen]
 
 use std::fmt;
-use wasm_bindgen::prelude::*;
 
-#[wasm_bindgen]
 #[derive(Clone, Debug)]
 pub struct FloatField {
     pub width: usize,
-    data: Vec<f32>,
+    pub data: Vec<f32>,
 }
 
 impl FloatField {
