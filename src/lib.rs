@@ -25,14 +25,13 @@ use web_sys::console;
 
 #[derive(PartialEq, Eq, Hash)]
 pub struct Pixel {
-    x: i32,
-    y: i32,
+    coord: Coord,
     d: i32,
 }
 
 impl Pixel {
-    pub fn new(x: i32, y: i32, d: i32) -> Self {
-        Pixel { x, y, d }
+    pub fn new(coord: Coord, d: i32) -> Self {
+        Pixel { coord, d }
     }
 }
 
@@ -256,22 +255,22 @@ impl Universe {
                 let priority = (x * self.width + y) as i32;
                 self.sink_mult.set(coord, f32::INFINITY);
                 if !*self.sinks.get(coord) && !*self.walls.get(coord) {
-                    queue.push(Pixel::new(x as i32, y as i32, 0), priority);
+                    queue.push(Pixel::new(coord, 0), priority);
                 }
             }
             while !queue.is_empty() {
                 let p: Pixel = queue.pop().unwrap().0;
-                let coord = Coord::new(p.x, p.y);
-                if *self.sink_mult.get(coord) > p.d as f32 {
-                    self.sink_mult.set(coord, p.d as f32);
+                if *self.sink_mult.get(p.coord) > p.d as f32 {
+                    self.sink_mult.set(p.coord, p.d as f32);
 
-                    for dx in (-1i32..1).step_by(2) {
-                        for dy in (-1i32..1).step_by(2) {
-                            let q: Pixel = Pixel::new(p.x + dx, p.y + dy, p.d + 1);
-                            if q.x >= 0
-                                && q.x < self.width as i32
-                                && q.y >= 0
-                                && q.y < self.height as i32
+                    for dx in (-1..1).step_by(2) {
+                        for dy in (-1..1).step_by(2) {
+                            let q_coord = Coord::new(dx, dy).add(p.coord);
+                            let q: Pixel = Pixel::new(q_coord, p.d + 1);
+                            if q.coord.x >= 0
+                                && q.coord.x < self.width as i32
+                                && q.coord.y >= 0
+                                && q.coord.y < self.height as i32
                             {
                                 queue.push(q, 1);
                             }
