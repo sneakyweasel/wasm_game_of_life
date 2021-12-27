@@ -1,7 +1,4 @@
-pub struct Coord {
-    x: i32,
-    y: i32,
-}
+use coord::Coord;
 
 #[derive(Clone, Debug)]
 pub struct Grid<T> {
@@ -16,14 +13,14 @@ impl<T> Grid<T> {
     }
 
     // Use options for out of bound coords
-    pub fn get(&self, point: Coord) -> &T {
-        let index = (point.x + self.width as i32 * point.y) as usize;
+    pub fn get(&self, coord: Coord) -> &T {
+        let index = (coord.x + self.width as i32 * coord.y) as usize;
         &self.data[index]
     }
 
     // Use options for out of bounds coords
-    pub fn set(&mut self, point: Coord, value: T) {
-        let index = (point.x + self.width as i32 * point.y) as usize;
+    pub fn set(&mut self, coord: Coord, value: T) {
+        let index = (coord.x + self.width as i32 * coord.y) as usize;
         self.data[index] = value
     }
 

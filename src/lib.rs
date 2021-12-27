@@ -4,21 +4,23 @@ extern crate rand;
 extern crate wasm_bindgen;
 extern crate web_sys;
 
-mod bool_field;
+// mod bool_field;
 mod cell;
 mod color;
 mod complex;
 mod complex_field;
+mod coord;
 mod float_field;
 mod grid;
 mod quantum;
 mod utils;
 
-use bool_field::BoolField;
+// use bool_field::BoolField;
 use cell::Cell;
 use color::Color;
 use complex::Complex;
 use complex_field::ComplexField;
+use coord::Coord;
 use float_field::FloatField;
 use grid::Grid;
 use priority_queue::PriorityQueue;
@@ -64,8 +66,8 @@ pub struct Universe {
     height: usize,
     cells: Vec<Cell>,
     complex_field: ComplexField,
-    walls: BoolField,
-    sinks: BoolField,
+    walls: Grid<bool>,
+    sinks: Grid<bool>,
     sink_mult: FloatField,
     level_design_potential: FloatField,
     potential_cache: FloatField,
@@ -107,8 +109,8 @@ impl Universe {
             .map(|_i| Cell::new(Color::WHITE()))
             .collect();
         let complex_field = ComplexField::new(width, height);
-        let walls = BoolField::new(width, height);
-        let sinks = BoolField::new(width, height);
+        let walls = Grid::new(width, height);
+        let sinks = Grid::new(width, height);
         let sink_mult = FloatField::new(width, height);
         let level_design_potential = FloatField::new(width, height);
         let potential_cache = FloatField::new(width, height);
@@ -155,9 +157,13 @@ impl Universe {
 
         for y in 1..self.height - 1 {
             for x in 1..self.width - 1 {
+                let coord = Coord {
+                    x: x as i32,
+                    y: y as i32,
+                };
                 let sink_mult = self.sink_mult.get(x, y);
                 let potential_cache = self.potential_cache.get(x, y);
-                if !self.walls.get(x, y) {
+                if !self.walls.get(coord) {
                     self.complex_field
                         .process(x, y, sink_mult, self.dt, potential_cache);
                 }
@@ -220,12 +226,12 @@ impl Universe {
     }
 
     /// Set sinks
-    fn set_sink(&mut self, sub_mask: BoolField) {
+    fn set_sink(&mut self, sub_mask: Grid<bool>) {
         self.sinks = sub_mask
     }
 
     /// Set walls
-    fn set_walls(&mut self, sub_mask: BoolField) {
+    fn set_walls(&mut self, sub_mask: Grid<bool>) {
         self.walls = sub_mask
     }
 
@@ -233,7 +239,8 @@ impl Universe {
     fn add_walls(&mut self) {
         for x in 1..self.width {
             for y in 1..self.height {
-                if self.walls.get(x, y) {
+                let coord = Coord::new(x as i32, y as i32);
+                if *self.walls.get(coord) {
                     self.complex_field.set(x, y, Complex::ZERO());
                 }
             }
@@ -246,9 +253,10 @@ impl Universe {
         let mut queue: PriorityQueue<Pixel, i32> = PriorityQueue::new();
         for y in 0..self.height {
             for x in 0..self.width {
+                let coord = Coord::new(x as i32, y as i32);
                 let priority = (x * self.width + y) as i32;
                 self.sink_mult.set(x, y, f32::INFINITY);
-                if !self.sinks.get(x, y) && !self.walls.get(x, y) {
+                if !*self.sinks.get(coord) && !*self.walls.get(coord) {
                     queue.push(Pixel::new(x as i32, y as i32, 0), priority);
                 }
             }
