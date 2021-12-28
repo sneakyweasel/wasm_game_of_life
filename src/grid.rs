@@ -1,31 +1,41 @@
 use coord::Coord;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Grid<T> {
     pub width: usize,
     pub data: Vec<T>,
 }
 
 impl<T> Grid<T> {
+    /// Create a new grid of the given size.
     pub fn new(width: usize, height: usize) -> Self {
         let data: Vec<T> = Vec::with_capacity(width * height);
         Grid { data, width }
     }
 
-    // Use options for out of bound coords
-    pub fn get(&self, coord: Coord) -> &T {
-        let index = (coord.x + self.width as i32 * coord.y) as usize;
-        &self.data[index]
+    /// Returns the value at the given coord.
+    pub fn get(&self, coord: Coord) -> Option<&T> {
+        if self.is_valid_coord(coord) {
+            Some(&self.data[coord.x as usize + coord.y as usize * self.width])
+        } else {
+            None
+        }
     }
 
-    // Use options for out of bounds coords
+    /// Sets the value at the given coord.
     pub fn set(&mut self, coord: Coord, value: T) {
-        let index = (coord.x + self.width as i32 * coord.y) as usize;
-        self.data[index] = value
+        if self.is_valid_coord(coord) {
+            self.data[coord.x as usize + coord.y as usize * self.width] = value;
+        } else {
+            panic!("Invalid coord: {:?}", coord);
+        }
     }
 
-    // Height
-    // pub fn height(&self) -> usize {
-    //     self.data.len() / self.width
-    // }
+    /// Returns true if the coord is valid
+    pub fn is_valid_coord(&self, coord: Coord) -> bool {
+        coord.x < self.width as i32 &&
+        coord.x >= 0 &&
+        coord.y < self.width as i32 &&
+        coord.y >= 0
+    }
 }

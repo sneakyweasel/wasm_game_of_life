@@ -1,7 +1,10 @@
 [package]
-name = "wasm-game-of-life"
+name = "quantum-wave"
 version = "0.1.0"
-authors = ["Nick Fitzgerald <fitzgen@gmail.com>"]
+description = "Quantum wave vizualisation in WASM"
+authors = ["Philippe Cochin <philippe.cochin@gmail.com>"]
+license = "MIT"
+repository = "https://github.com/sneakyweasel/wasm_game_of_life"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -10,7 +13,7 @@ crate-type = ["cdylib", "rlib"]
 default = ["console_error_panic_hook"]
 
 [dependencies]
-cfg-if = "0.1.2"
+cfg-if = "1.0.0"
 wasm-bindgen = "0.2"
 priority-queue= "1.2.1"
 num = "0.4.0"

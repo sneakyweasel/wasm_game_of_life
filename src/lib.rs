@@ -4,6 +4,7 @@ extern crate rand;
 extern crate wasm_bindgen;
 extern crate web_sys;
 
+mod pixel;
 mod cell;
 mod color;
 mod complex;
@@ -13,6 +14,7 @@ mod quantum;
 mod timer;
 mod utils;
 
+use pixel::Pixel;
 use cell::Cell;
 use color::Color;
 use complex::Complex;
@@ -23,18 +25,6 @@ use std::f32::consts::PI;
 use std::fmt;
 use wasm_bindgen::prelude::*;
 
-#[derive(PartialEq, Eq, Hash)]
-pub struct Pixel {
-    coord: Coord,
-    val: i32,
-}
-
-impl Pixel {
-    pub fn new(coord: Coord, val: i32) -> Self {
-        Pixel { coord, val }
-    }
-}
-
 #[wasm_bindgen]
 pub struct Universe {
     width: usize,
@@ -44,13 +34,14 @@ pub struct Universe {
     walls: Grid<bool>,
     sinks: Grid<bool>,
     sink_mult: Grid<f32>,
-    level_design_potential: Grid<f32>,
+    potential_level: Grid<f32>,
     potential_cache: Grid<f32>,
     max_tilt: f32,
     dt: f32,
 }
 
 impl Universe {
+    /// Compute index of a given cell
     fn get_index(&self, row: usize, column: usize) -> usize {
         (row * self.width + column) as usize
     }
@@ -64,8 +55,8 @@ impl Universe {
     /// of each cell as an array.
     pub fn set_cells(&mut self, cells: &[(usize, usize)]) {
         for (row, column) in cells.iter().cloned() {
-            let idx = self.get_index(row, column);
-            self.cells[idx] = Cell {
+            let index = self.get_index(row, column);
+            self.cells[index] = Cell {
                 color: Color::new(0, 0, 0),
             };
         }
@@ -83,12 +74,22 @@ impl Universe {
         let cells = (0..width * height)
             .map(|_i| Cell::new(Color::white()))
             .collect();
-        let complex_field = Grid::new(width, height);
-        let walls = Grid::new(width, height);
-        let sinks = Grid::new(width, height);
-        let sink_mult = Grid::new(width, height);
-        let level_design_potential = Grid::new(width, height);
-        let potential_cache = Grid::new(width, height);
+    
+        // Create a new grid of the given size
+        let mut complex_field = Grid::<Complex>::new(width, height);
+        let mut walls: Grid<bool> = Grid::<bool>::new(width, height);
+        let mut sinks = Grid::<bool>::new(width, height);
+        let mut sink_mult = Grid::<f32>::new(width, height);
+        let mut potential_level = Grid::<f32>::new(width, height);
+        let mut potential_cache = Grid::<f32>::new(width, height);
+        
+        // Zerofill data vectors
+        complex_field.data.fill(Complex::new(0.0, 0.0));
+        walls.data.fill(false);
+        sinks.data.fill(false);
+        sink_mult.data.fill(0.0);
+        potential_level.data.fill(0.0);
+        potential_cache.data.fill(0.0);
 
         Universe {
             width,
@@ -98,7 +99,7 @@ impl Universe {
             walls,
             sinks,
             sink_mult,
-            level_design_potential,
+            potential_level,
             potential_cache,
             max_tilt: 0.0,
             dt: 0.0,
@@ -111,7 +112,7 @@ impl Universe {
         self.max_tilt = 2.5;
         let _scale = 3.0;
         let _qft = 5;
-        self.add_gaussian(Coord::new(25, 25), 1.0, 0.0, 0.0, 1.0);
+        self.add_gaussian(Coord::new(3, 3), 1.0, 0.0, 0.0, 1.0);
         self.setup_sink_mult();
         self.add_walls();
         self.ensure_no_positive_potential();
@@ -125,7 +126,9 @@ impl Universe {
         self.cells = next;
     }
 
+    /// Compute the steps throught the quantum field theory.
     pub fn step(&mut self) {
+        let dt = self.dt;
         let x_slope = 0.0;
         let y_slope = 0.0;
         self.reset_potential_cache(x_slope, y_slope);
@@ -133,31 +136,28 @@ impl Universe {
         for y in 1..self.height - 1 {
             for x in 1..self.width - 1 {
                 let coord = Coord::new(x as i32, y as i32);
-                let _sink_mult = self.sink_mult.get(coord);
-                let _potential_cache = self.potential_cache.get(coord);
-                // TODO
-                // pub fn process(&mut self, x: usize, y: usize, sink_mult: f32, dt: f32, potential_cache: f32) {
-                //   let cx = self.get(x, y);
-                //   let top = self.get(x, y - 1);
-                //   let bottom = self.get(x, y + 1);
-                //   let left = self.get(x - 1, y);
-                //   let right = self.get(x + 1, y);
+                
+                if !self.walls.get(coord).unwrap() {
+                    let sink_mult = self.sink_mult.get(coord).unwrap();
+                    let potential_cache = self.potential_cache.get(coord).unwrap();
+                    
+                    let cx = self.complex_field.get(coord).unwrap();
+                    let top = self.complex_field.get(coord.top()).unwrap();
+                    let bottom = self.complex_field.get(coord.bottom()).unwrap();
+                    let left = self.complex_field.get(coord.left()).unwrap();
+                    let right = self.complex_field.get(coord.right()).unwrap();
 
-                //   let re = sink_mult
-                //       * (cx.im
-                //           + dt * (-0.5 * (top.re + bottom.re + left.re + right.re - 4.0 * cx.re)
-                //               + potential_cache * cx.re));
-                //   let im = sink_mult
-                //       * (cx.re
-                //           + dt * (-0.5 * (top.im + bottom.im + left.im + right.im - 4.0 * cx.im)
-                //               + potential_cache * cx.im));
+                    let re = sink_mult
+                        * (cx.im
+                            + dt * (-0.5 * (top.re + bottom.re + left.re + right.re - 4.0 * cx.re)
+                                + potential_cache * cx.re));
+                    let im = sink_mult
+                        * (cx.re
+                            + dt * (-0.5 * (top.im + bottom.im + left.im + right.im - 4.0 * cx.im)
+                                + potential_cache * cx.im));
 
-                //   self.set(x, y, Complex::new(re, im));
-
-                // if !self.walls.get(coord) {
-                //     self.complex_field
-                //         .process(x, y, sink_mult, self.dt, potential_cache);
-                // }
+                    self.complex_field.set(coord, Complex::new(re, im));                    
+                }
             }
         }
     }
@@ -191,11 +191,6 @@ impl Universe {
     }
 
     /// Get the cells of the universe
-    // pub fn cells(&self) -> *const Cell {
-    //     self.cells.as_ptr()
-    // }
-
-    /// Get the cells of the universe
     pub fn cells(&self) -> *const Cell {
         self.cells.as_ptr()
     }
@@ -221,7 +216,8 @@ impl Universe {
         for x in 1..self.width {
             for y in 1..self.height {
                 let coord = Coord::new(x as i32, y as i32);
-                if *self.walls.get(coord) {
+                
+                if *self.walls.get(coord).unwrap() {
                     self.complex_field.set(coord, Complex::zero());
                 }
             }
@@ -235,17 +231,18 @@ impl Universe {
         for y in 0..self.height {
             for x in 0..self.width {
                 let coord = Coord::new(x as i32, y as i32);
+
                 let priority = (x * self.width + y) as i32;
                 self.sink_mult.set(coord, f32::INFINITY);
-                if !*self.sinks.get(coord) && !*self.walls.get(coord) {
+                if !*self.sinks.get(coord).unwrap() && !*self.walls.get(coord).unwrap() {
                     queue.push(Pixel::new(coord, 0), priority);
                 }
             }
             while !queue.is_empty() {
                 let p: Pixel = queue.pop().unwrap().0;
-                if *self.sink_mult.get(p.coord) > p.val as f32 {
+                if *self.sink_mult.get(p.coord).unwrap() > p.val as f32 {
                     self.sink_mult.set(p.coord, p.val as f32);
-
+                
                     for dx in (-1..1).step_by(2) {
                         for dy in (-1..1).step_by(2) {
                             let q_coord = Coord::new(dx, dy).add(p.coord);
@@ -267,14 +264,15 @@ impl Universe {
         for y in 0..self.height {
             for x in 0..self.width {
                 let coord = Coord::new(x as i32, y as i32);
-                let dist = self.sink_mult.get(coord);
+
+                let dist = self.sink_mult.get(coord).unwrap();
                 let value = (-(dist / 2.0).powf(2.0) * suddenness).exp();
                 self.sink_mult.set(coord, value);
             }
         }
     }
 
-    // Add a gaussian distribution to the complex field
+    /// Add a gaussian distribution to the complex field
     pub fn add_gaussian(&mut self, c: Coord, sigma: f32, fx: f32, fy: f32, a_scale: f32) {
         let a: f32 = a_scale * 2.0 * PI;
         let d: f32 = 4.0 * sigma * sigma;
@@ -282,37 +280,30 @@ impl Universe {
         let omega_y = 2.0 * PI * fy; // seems wrong
 
         // TODO: use neighbourgs to speed this up
+        let fwidth = self.width as f32;
+        let fheight = self.height as f32;
         for x in 1..&self.width - 1 {
             for y in 1..&self.height - 1 {
+                let fx = x as f32;
+                let fy = y as f32;
+                
                 let coord = Coord::new(x as i32, y as i32);
                 let r2: f32 = ((coord.x - c.x).pow(2) + (coord.y - c.y).pow(2)) as f32;
                 let re = a
                     * f32::exp(-r2 / d)
-                    * (omega_x * (x as f32) / (self.width as f32)).cos()
-                    * (omega_y * (y as f32) / (self.height as f32)).cos();
+                    * (omega_x * fx / fwidth).cos()
+                    * (omega_y * fy / fheight).cos();
                 let im = a
                     * f32::exp(-r2 / d)
-                    * (omega_x * (x as f32) / (self.width as f32)).sin()
-                    * (omega_y * (y as f32) / (self.height as f32)).sin();
+                    * (omega_x * fx / fwidth).sin()
+                    * (omega_y * fy / fheight).sin();
 
                 let c = Complex::new(re, im);
-                let orig_c = *self.complex_field.get(coord);
+                let orig_c = *self.complex_field.get(coord).unwrap();
                 self.complex_field.set(coord, orig_c.add(&c));
             }
         }
     }
-
-    // /// Get potential at a given point
-    // fn get_potential(&self, coord: Coord) -> f32 {
-    //     *self.level_design_potential.get(coord)
-    // }
-
-    /// Add potential to a given point
-    // fn add_potential(&mut self, coord: Coord, pot: f32) {
-    //     *self.level_design_potential.get(coord)
-    //     let orig = self.get_potential(coord);
-    //     self.level_design_potential.set(coord, orig + pot)
-    // }
 
     /// Add potential cone starting from a given point
     pub fn add_potential_cone(&mut self, xc: i32, yc: i32, radius: f32, depth: f32) {
@@ -324,8 +315,8 @@ impl Universe {
                 let r = ((dx * dx + dy * dy) as f32).sqrt();
                 if r < radius {
                     let pot = r / radius * depth;
-                    let orig = *self.level_design_potential.get(coord);
-                    self.level_design_potential.set(coord, orig + pot);
+                    let orig = *self.potential_level.get(coord).unwrap();
+                    self.potential_level.set(coord, orig + pot);
                 }
             }
         }
@@ -370,7 +361,7 @@ impl Universe {
                 let coord = Coord::new(x as i32, y as i32);
                 current_pot += x_pot_step;
                 self.potential_cache
-                    .set(coord, current_pot + self.level_design_potential.get(coord))
+                    .set(coord, current_pot + self.potential_level.get(coord).unwrap());
             }
         }
     }
@@ -382,7 +373,7 @@ impl Universe {
         for y in 0..self.height {
             for x in 0..self.width {
                 let coord = Coord::new(x as i32, y as i32);
-                let pot = *self.level_design_potential.get(coord);
+                let pot = *self.potential_level.get(coord).unwrap();
                 if pot > max_pot {
                     max_pot = pot;
                 }
@@ -391,13 +382,14 @@ impl Universe {
         for y in 0..self.height {
             for x in 0..self.width {
                 let coord = Coord::new(x as i32, y as i32);
-                let value = self.level_design_potential.get(coord) - max_pot;
-                self.level_design_potential.set(coord, value);
+                let value = self.potential_level.get(coord).unwrap() - max_pot;
+                self.potential_level.set(coord, value);
             }
         }
     }
 }
 
+/// Implement display for the cells
 impl fmt::Display for Universe {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for line in self.cells.as_slice().chunks(self.width as usize) {
