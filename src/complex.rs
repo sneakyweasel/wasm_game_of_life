@@ -1,3 +1,4 @@
+use color::Color;
 use std::f32::consts::PI;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -70,11 +71,11 @@ impl Complex {
         }
     }
 
-    pub fn to_hsl(&self) -> (u8, u8, u8) {
+    pub fn into_hsl(&self) -> Color {
         let hue = ((self.phi() * 360.0 / (2.0 * PI)) % 360.0) as u8;
         let saturation = if self.radius() == 0.0 { 0 } else { 100 };
         let lightness = (100.0 - (self.radius() * 50.0)) as u8;
-        (hue, saturation, lightness)
+        Color::new(hue, saturation, lightness)
     }
 
     pub fn to_string(&self) -> String {

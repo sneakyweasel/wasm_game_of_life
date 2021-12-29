@@ -44,6 +44,10 @@ impl Coord {
     pub fn neighbors(&self) -> [Coord; 4] {
         [self.top(), self.bottom(), self.left(), self.right()]
     }
+
+    // pub fn distance(&self, other: Coord) -> i32 {
+    //     (self.x - other.x).abs() + (self.y - other.y).abs()
+    // }
 }
 
 #[cfg(test)]
