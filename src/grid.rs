@@ -1,7 +1,10 @@
+extern crate colored;
+use colored::*;
 use coord::Coord;
 use color::Color;
 use cell::Cell;
 use complex::Complex;
+use std::fmt;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Grid<T> {
@@ -17,6 +20,20 @@ impl Grid<bool> {
             width,
             data: vec![false; width * height],
         }
+    }
+}
+
+/// Implement display for the cells
+impl fmt::Display for Grid<bool> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        for line in self.data.as_slice().chunks(self.width as usize) {
+            for &cell in line {
+                let symbol = if cell { '◻' } else { '◼' };
+                write!(f, "{}", symbol)?;
+            }
+            write!(f, "\n")?;
+        }
+        Ok(())
     }
 }
 
@@ -40,6 +57,22 @@ impl Grid<f32> {
         }
     }
 }
+
+/// Implement display for the cells
+impl fmt::Display for Grid<f32> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        for line in self.data.as_slice().chunks(self.width as usize) {
+            for &cell in line {
+                let rgb = (cell * 255.0) as u8;
+                let symbol = "◼".truecolor(rgb, rgb, rgb);
+                write!(f, "{}", symbol)?;
+            }
+            write!(f, "\n")?;
+        }
+        Ok(())
+    }
+}
+
 
 /// Specific methods for complex grids.
 impl Grid<Complex> {
@@ -67,6 +100,22 @@ impl Grid<Complex> {
             cells.data[i] = Cell::new(c.into_hsl());
         }
         cells
+    }
+}
+
+/// Implement display for the cells
+impl fmt::Display for Grid<Complex> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        for line in self.data.as_slice().chunks(self.width as usize) {
+            for &cell in line {
+                //let color = cell.into_hsl();
+                let color = Color::from_complex(cell);
+                let symbol = "◼".truecolor(color.r, color.g, color.b);
+                write!(f, "{}", symbol)?;
+            }
+            write!(f, "\n")?;
+        }
+        Ok(())
     }
 }
 
@@ -104,11 +153,6 @@ impl<T> Grid<T> {
     /// Grid height.
     pub fn height(&self) -> usize {
         self.data.len() / self.width
-    }
-
-    /// Grid size.
-    pub fn size(&self) -> usize {
-        self.width * self.height()
     }
 
     /// Returns true if the coord is valid

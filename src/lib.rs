@@ -3,6 +3,7 @@ extern crate priority_queue;
 extern crate rand;
 extern crate wasm_bindgen;
 extern crate web_sys;
+extern crate colored;
 
 mod pixel;
 mod cell;
@@ -19,7 +20,6 @@ use coord::Coord;
 use grid::Grid;
 use priority_queue::PriorityQueue;
 use std::f32::consts::PI;
-use std::fmt;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -40,10 +40,8 @@ pub struct Universe {
 /// Public methods, exported to JavaScript.
 #[wasm_bindgen]
 impl Universe {
-    pub fn new() -> Universe {
+    pub fn new(width: usize, height: usize) -> Universe {
         utils::set_panic_hook();
-        let height = 50;
-        let width = 50;
         let max_tilt = 0.0;
         let dt = 0.1;
 
@@ -150,9 +148,12 @@ impl Universe {
 
     /// Set the complex field to zero if there is a wall at the specified cell
     fn setup_walls(&mut self) {
-        for i in 0..self.walls.size() {
-            if self.walls.data[i] {
-                self.quantum.data[i] = Complex::zero();
+        for y in 0..self.height {
+            for x in 0..self.width {
+                let coord = Coord::new(x as i32, y as i32);
+                if self.is_wall(coord) {
+                    self.quantum.set(coord, Complex::new(0.0, 0.0));
+                }
             }
         }
     }
@@ -164,30 +165,33 @@ impl Universe {
         for y in 0..self.height {
             for x in 0..self.width {
                 let coord = Coord::new(x as i32, y as i32);
+                self.sink_mult.set(coord, f32::INFINITY);
+
                 // Fill priority queue
                 let priority = (x * self.width + y) as i32;
-                self.sink_mult.set(coord, f32::INFINITY);
                 if !self.is_wall(coord) && !self.is_sink(coord) {
                     queue.push(Pixel::new(coord, 0), priority);
                 }
             }
-            while !queue.is_empty() {
-                let p: Pixel = queue.pop().unwrap().0;
-                if *self.sink_mult.get(p.coord).unwrap() > p.val as f32 {
-                    self.sink_mult.set(p.coord, p.val as f32);
-                    
-                    let neighbors = self.sink_mult.valid_neighbors(p.coord);
-                    for coord in neighbors {
-                        let q: Pixel = Pixel::new(coord, p.val + 1);
-                        queue.push(q, 1);
-                    }
+        }
+        
+        while !queue.is_empty() {
+            let p: Pixel = queue.pop().unwrap().0;
+            if *self.sink_mult.get(p.coord).unwrap() > p.val as f32 {
+                self.sink_mult.set(p.coord, p.val as f32);
+                
+                let neighbors = self.sink_mult.valid_neighbors(p.coord);
+                for coord in neighbors {
+                    let q: Pixel = Pixel::new(coord, p.val + 1);
+                    queue.push(q, 1);
                 }
             }
         }
+        
         //now convert these to actual sink_mults
         let suddenness: f32 = 0.005;
-        for y in 0..=self.height {
-            for x in 0..=self.width {
+        for y in 0..self.height - 1 {
+            for x in 0..self.width - 1 {
                 let coord = Coord::new(x as i32, y as i32);
 
                 let dist = self.sink_mult.get(coord).unwrap();
@@ -207,8 +211,8 @@ impl Universe {
         // TODO: use neighbourgs to speed this up
         let fwidth = self.width as f32;
         let fheight = self.height as f32;
-        for x in 1..self.width {
-            for y in 1..self.height {
+        for x in 0..self.width {
+            for y in 0..self.height {
                 let fx = x as f32;
                 let fy = y as f32;
                 
@@ -303,25 +307,38 @@ impl Universe {
     }
 }
 
-/// Implement display for the cells
-impl fmt::Display for Universe {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        for line in self.cells.data.as_slice().chunks(self.width as usize) {
-            for &cell in line {
-                let symbol = if cell.color.is_white() { '◻' } else { '◼' };
-                write!(f, "{}", symbol)?;
-            }
-            write!(f, "\n")?;
-        }
-        Ok(())
-    }
-}
-
 #[cfg(test)]
 #[test]
 fn test_universe_creation() {
-    let u = Universe::new();
-    assert_eq!(u.width, 50);
-    assert_eq!(u.height, 50);
-    assert_eq!(u.cells.data.len(), 2500);
+    let u = Universe::new(5, 5);
+    assert_eq!(u.width, 5);
+    assert_eq!(u.height, 5);
+    assert_eq!(u.cells.data.len(), 25);
+}
+
+#[test]
+fn test_setup_walls_submask() {
+    let mut u = Universe::new(5, 5);
+    u.walls.set(Coord::new(1, 1), true);
+    u.walls.set(Coord::new(2, 2), true);
+    u.setup_walls();
+    println!("{}", u.walls);
+    assert_eq!(u.quantum.data.len(), 25);
+}
+
+#[test]
+fn test_setup_sink_mult() {
+    let mut u = Universe::new(5, 5);
+    u.sinks.set(Coord::new(1, 1), true);
+    u.sinks.set(Coord::new(2, 2), true);
+    u.setup_sink_mult();
+    println!("{}", u.sink_mult);
+}
+
+#[test]
+/// test that the gaussian distribution is set correctly
+fn test_adding_gaussian_to_quantum() {
+    let mut u = Universe::new(10, 10);
+    u.add_gaussian(Coord::new(4, 4), 0.7, 0.0, 0.0, 1.0);
+    println!("{}", u.quantum);
 }
