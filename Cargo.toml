@@ -16,9 +16,11 @@ default = ["console_error_panic_hook"]
 cfg-if = "1.0.0"
 wasm-bindgen = "0.2"
 priority-queue= "1.2.1"
+crossbeam-queue= "0.3.0"
 num = "0.4.0"
 rand = { version = "*", features = ["wasm-bindgen"] }
 colored = "2"
+colorsys= "0.6.5"
 
 # The `console_error_panic_hook` crate provides better debugging of panics by
 # logging them with `console.error`. This is great for development, but requires

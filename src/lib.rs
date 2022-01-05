@@ -1,24 +1,25 @@
 extern crate cfg_if;
+extern crate colored;
+extern crate colorsys;
+extern crate crossbeam_queue;
 extern crate priority_queue;
 extern crate rand;
 extern crate wasm_bindgen;
 extern crate web_sys;
-extern crate colored;
 
-mod pixel;
 mod cell;
 mod color;
 mod complex;
 mod coord;
 mod grid;
+mod pixel;
 mod utils;
 
-use pixel::Pixel;
-use cell::Cell;
 use complex::Complex;
 use coord::Coord;
+use crossbeam_queue::SegQueue;
 use grid::Grid;
-use priority_queue::PriorityQueue;
+use pixel::Pixel;
 use std::f32::consts::PI;
 use wasm_bindgen::prelude::*;
 
@@ -26,7 +27,6 @@ use wasm_bindgen::prelude::*;
 pub struct Universe {
     width: usize,
     height: usize,
-    cells: Grid<Cell>,
     quantum: Grid<Complex>,
     walls: Grid<bool>,
     sinks: Grid<bool>,
@@ -46,18 +46,16 @@ impl Universe {
         let dt = 0.1;
 
         // Create a new grid of the given size
-        let cells = Grid::<Cell>::new(width, height);
         let quantum = Grid::<Complex>::new(width, height);
-        let walls  = Grid::<bool>::new(width, height);
+        let walls = Grid::<bool>::new(width, height);
         let sinks = Grid::<bool>::new(width, height);
         let sink_mult = Grid::<f32>::new(width, height);
         let potential_level = Grid::<f32>::new(width, height);
         let potential_cache = Grid::<f32>::new(width, height);
-        
+
         Universe {
             width,
             height,
-            cells,
             quantum,
             walls,
             sinks,
@@ -75,18 +73,10 @@ impl Universe {
         self.max_tilt = 2.5;
         let _scale = 3.0;
         let _qft = 5;
-        self.add_gaussian(Coord::new(3, 3), 1.0, 0.0, 0.0, 1.0);
+        self.add_gaussian(Coord::new(8, 8), 1.0, 0.0, 0.0, 1.0);
         self.setup_sink_mult();
         self.setup_walls();
         self.ensure_no_positive_potential();
-        self.cells = self.quantum.clone().into_cells();
-    }
-
-    /// Process the next generation of the universe.
-    pub fn tick(&mut self) {
-        let next = self.cells.clone();
-        self.step();
-        self.cells = next;
     }
 
     /// Compute the steps throught the quantum field theory.
@@ -96,14 +86,14 @@ impl Universe {
         let y_slope = 0.0;
         self.reset_potential_cache(x_slope, y_slope);
 
-        for y in 1..self.height {
-            for x in 1..self.width {
+        for y in 1..self.height - 1 {
+            for x in 1..self.width - 1 {
                 let coord = Coord::new(x as i32, y as i32);
-                
+
                 if !self.is_wall(coord) {
                     let sink_mult = self.sink_mult.get(coord).unwrap();
                     let potential_cache = self.potential_cache.get(coord).unwrap();
-                    
+
                     let cx = self.quantum.get(coord).unwrap();
                     let top = self.quantum.get(coord.top()).unwrap();
                     let bottom = self.quantum.get(coord.bottom()).unwrap();
@@ -112,28 +102,31 @@ impl Universe {
 
                     let re = sink_mult
                         * (cx.im
-                            + dt * (-0.5 * (top.re + bottom.re + left.re + right.re - 4.0 * cx.re)
+                            + dt * (-0.5
+                                * (top.re + bottom.re + left.re + right.re - 4.0 * cx.re)
                                 + potential_cache * cx.re));
                     let im = sink_mult
                         * (cx.re
-                            + dt * (-0.5 * (top.im + bottom.im + left.im + right.im - 4.0 * cx.im)
+                            + dt * (-0.5
+                                * (top.im + bottom.im + left.im + right.im - 4.0 * cx.im)
                                 + potential_cache * cx.im));
 
-                    self.quantum.set(coord, Complex::new(re, im));                    
+                    self.quantum.set(coord, Complex::new(re, im));
                 }
             }
         }
     }
 
-    /// Get the cells of the universe
-    pub fn cells(&self) -> *const Cell {
-        self.cells.data.as_ptr()
-    }
-
-    /// toggle the state of the specified cell
-    pub fn toggle_cell(&self, coord: Coord) {
-        let mut cell: Cell = *self.cells.get(coord).unwrap();
-        cell.toggle();
+    /// Retrieve cells for the web app.
+    pub fn cells(&self) -> *const u8 {
+        let mut cells = Vec::new();
+        for cell in self.quantum.data.iter() {
+            let color = cell.into_rgb();
+            cells.push(color.r);
+            cells.push(color.g);
+            cells.push(color.b);
+        }
+        cells.as_ptr()
     }
 
     /// Check if there is a wall at coord
@@ -161,33 +154,33 @@ impl Universe {
     /// Flood fill sink_mult with 0 where not a sink; otherwise distance in pixels from non-sink
     /// ...basically a mini-Dijkstra
     fn setup_sink_mult(&mut self) {
-        let mut queue: PriorityQueue<Pixel, i32> = PriorityQueue::new();
+        // let mut queue: PriorityQueue<Pixel, i32> = PriorityQueue::new();
+        let queue = SegQueue::new();
         for y in 0..self.height {
             for x in 0..self.width {
                 let coord = Coord::new(x as i32, y as i32);
                 self.sink_mult.set(coord, f32::INFINITY);
 
                 // Fill priority queue
-                let priority = (x * self.width + y) as i32;
                 if !self.is_wall(coord) && !self.is_sink(coord) {
-                    queue.push(Pixel::new(coord, 0), priority);
+                    queue.push(Pixel::new(coord, 0));
                 }
             }
         }
-        
+
         while !queue.is_empty() {
-            let p: Pixel = queue.pop().unwrap().0;
+            let p: Pixel = queue.pop().unwrap();
             if *self.sink_mult.get(p.coord).unwrap() > p.val as f32 {
                 self.sink_mult.set(p.coord, p.val as f32);
-                
+
                 let neighbors = self.sink_mult.valid_neighbors(p.coord);
                 for coord in neighbors {
                     let q: Pixel = Pixel::new(coord, p.val + 1);
-                    queue.push(q, 1);
+                    queue.push(q);
                 }
             }
         }
-        
+
         //now convert these to actual sink_mults
         let suddenness: f32 = 0.005;
         for y in 0..self.height - 1 {
@@ -203,19 +196,18 @@ impl Universe {
 
     /// Add a gaussian distribution to the complex field
     pub fn add_gaussian(&mut self, c: Coord, sigma: f32, fx: f32, fy: f32, a_scale: f32) {
-        let a: f32 = a_scale * 2.0 * PI;
+        let a: f32 = a_scale * (2.0 * PI * sigma * sigma).powf(-0.25);
         let d: f32 = 4.0 * sigma * sigma;
-        let omega_x = 2.0 * PI * fx; // seems wrong
-        let omega_y = 2.0 * PI * fy; // seems wrong
+        let omega_x = 2.0 * PI * fx;
+        let omega_y = 2.0 * PI * fy;
 
-        // TODO: use neighbourgs to speed this up
         let fwidth = self.width as f32;
         let fheight = self.height as f32;
-        for x in 0..self.width {
-            for y in 0..self.height {
+        for x in 1..self.width - 1 {
+            for y in 1..self.height - 1 {
                 let fx = x as f32;
                 let fy = y as f32;
-                
+
                 let coord = Coord::new(x as i32, y as i32);
                 let r2: f32 = ((coord.x - c.x).pow(2) + (coord.y - c.y).pow(2)) as f32;
                 let re = a
@@ -235,8 +227,8 @@ impl Universe {
 
     /// Add potential cone starting from a given point
     pub fn add_potential_cone(&mut self, xc: i32, yc: i32, radius: f32, depth: f32) {
-        for y in 0..=self.height {
-            for x in 0..=self.width {
+        for y in 0..self.height {
+            for x in 0..self.width {
                 let coord = Coord::new(x as i32, y as i32);
                 let dx = x as i32 - xc;
                 let dy = y as i32 - yc;
@@ -287,8 +279,10 @@ impl Universe {
             for x in 1..self.width {
                 let coord = Coord::new(x as i32, y as i32);
                 current_pot += x_pot_step;
-                self.potential_cache
-                    .set(coord, current_pot + self.potential_level.get(coord).unwrap());
+                self.potential_cache.set(
+                    coord,
+                    current_pot + self.potential_level.get(coord).unwrap(),
+                );
             }
         }
     }
@@ -296,10 +290,15 @@ impl Universe {
     /// Ensure there is no positive potential
     /// Get max potential and subtract from all cells
     fn ensure_no_positive_potential(&mut self) {
-        let max_pot = self.potential_level.data.iter().cloned().fold(1./0., f32::max);
-        
-        for y in 0..=self.height {
-            for x in 0..=self.width {
+        let max_pot = self
+            .potential_level
+            .data
+            .iter()
+            .cloned()
+            .fold(1. / 0., f32::max);
+
+        for y in 0..self.height {
+            for x in 0..self.width {
                 let coord = Coord::new(x as i32, y as i32);
                 self.potential_level.add(coord, -max_pot);
             }
@@ -313,7 +312,7 @@ fn test_universe_creation() {
     let u = Universe::new(5, 5);
     assert_eq!(u.width, 5);
     assert_eq!(u.height, 5);
-    assert_eq!(u.cells.data.len(), 25);
+    assert_eq!(u.quantum.data.len(), 25);
 }
 
 #[test]
@@ -327,18 +326,38 @@ fn test_setup_walls_submask() {
 }
 
 #[test]
-fn test_setup_sink_mult() {
+fn setup_sink_mult() {
     let mut u = Universe::new(5, 5);
-    u.sinks.set(Coord::new(1, 1), true);
-    u.sinks.set(Coord::new(2, 2), true);
     u.setup_sink_mult();
     println!("{}", u.sink_mult);
 }
 
 #[test]
 /// test that the gaussian distribution is set correctly
-fn test_adding_gaussian_to_quantum() {
+fn adding_gaussian_to_quantum() {
     let mut u = Universe::new(10, 10);
-    u.add_gaussian(Coord::new(4, 4), 0.7, 0.0, 0.0, 1.0);
+    u.add_gaussian(Coord::new(4, 4), 1.2, 0., 0., 1.);
+    u.add_gaussian(Coord::new(8, 8), 1.0, 0., 0., 0.7);
+    println!("{}", u.quantum);
+}
+
+#[test]
+fn adding_potential_cone() {
+    let mut u = Universe::new(10, 10);
+    u.add_potential_cone(3, 3, 4.0, 1.0);
+    println!("{}", u.potential_level);
+}
+
+#[test]
+fn reset_potential_cache() {
+    let mut u = Universe::new(10, 10);
+    u.reset_potential_cache(1.0, 1.0);
+    println!("{}", u.potential_cache);
+}
+
+#[test]
+fn setup() {
+    let mut u = Universe::new(10, 10);
+    u.setup();
     println!("{}", u.quantum);
 }

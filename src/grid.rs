@@ -1,9 +1,8 @@
 extern crate colored;
-use colored::*;
-use coord::Coord;
 use color::Color;
-use cell::Cell;
+use colored::*;
 use complex::Complex;
+use coord::Coord;
 use std::fmt;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -31,7 +30,7 @@ impl fmt::Display for Grid<bool> {
                 let symbol = if cell { '◻' } else { '◼' };
                 write!(f, "{}", symbol)?;
             }
-            write!(f, "\n")?;
+            writeln!(f)?;
         }
         Ok(())
     }
@@ -63,16 +62,20 @@ impl fmt::Display for Grid<f32> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for line in self.data.as_slice().chunks(self.width as usize) {
             for &cell in line {
-                let rgb = (cell * 255.0) as u8;
-                let symbol = "◼".truecolor(rgb, rgb, rgb);
-                write!(f, "{}", symbol)?;
+                let rgb = (255. - cell * 255.0) as u8;
+                if cell == 0.0 {
+                    let symbol = "◼".black();
+                    write!(f, "{}", symbol)?;
+                } else {
+                    let symbol = "◼".truecolor(rgb, rgb, rgb);
+                    write!(f, "{}", symbol)?;
+                }
             }
-            write!(f, "\n")?;
+            writeln!(f)?;
         }
         Ok(())
     }
 }
-
 
 /// Specific methods for complex grids.
 impl Grid<Complex> {
@@ -94,12 +97,14 @@ impl Grid<Complex> {
         }
     }
 
-    pub fn into_cells(self) -> Grid<Cell> {
-        let mut cells: Grid<Cell> = Grid::<Cell>::new(self.width, self.height());
+    #[allow(dead_code)]
+    /// Convert quantum to rgb colors.
+    pub fn into_cells(self) -> Grid<Color> {
+        let mut colors: Grid<Color> = Grid::<Color>::new(self.width, self.height());
         for (i, c) in self.data.iter().enumerate() {
-            cells.data[i] = Cell::new(c.into_hsl());
+            colors.data[i] = c.into_rgb();
         }
-        cells
+        colors
     }
 }
 
@@ -107,25 +112,24 @@ impl Grid<Complex> {
 impl fmt::Display for Grid<Complex> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for line in self.data.as_slice().chunks(self.width as usize) {
-            for &cell in line {
-                //let color = cell.into_hsl();
-                let color = Color::from_complex(cell);
+            for &c in line {
+                let color = c.into_rgb();
                 let symbol = "◼".truecolor(color.r, color.g, color.b);
                 write!(f, "{}", symbol)?;
             }
-            write!(f, "\n")?;
+            writeln!(f)?;
         }
         Ok(())
     }
 }
 
-/// Specific methods for cell grids.
-impl Grid<Cell> {
+/// Implement display for the cells
+impl Grid<Color> {
     /// Create a new grid of the given width and height.
     pub fn new(width: usize, height: usize) -> Self {
         Grid {
             width,
-            data: vec![Cell::new(Color::white()); width * height],
+            data: vec![Color::white(); width * height],
         }
     }
 }
@@ -157,15 +161,13 @@ impl<T> Grid<T> {
 
     /// Returns true if the coord is valid
     pub fn is_valid_coord(&self, coord: &Coord) -> bool {
-        coord.x < self.width as i32 &&
-        coord.x >= 0 &&
-        coord.y < self.width as i32 &&
-        coord.y >= 0
+        coord.x < self.width as i32 && coord.x >= 0 && coord.y < self.width as i32 && coord.y >= 0
     }
 
     /// Get neighbors of the given coord.
     pub fn valid_neighbors(&self, coord: Coord) -> Vec<Coord> {
-        coord.neighbors()
+        coord
+            .neighbors()
             .iter()
             .cloned()
             .filter(|c| self.is_valid_coord(c))
@@ -179,8 +181,8 @@ fn is_valid_coord_for_a_grid() {
     let grid: Grid<f32> = Grid::<f32>::new(5, 5);
     let valid = Coord::new(3, 2);
     let invalid = Coord::new(5, 8);
-    assert!(grid.is_valid_coord(&valid)); 
-    assert!(!grid.is_valid_coord(&invalid)); // out of bounds  
+    assert!(grid.is_valid_coord(&valid));
+    assert!(!grid.is_valid_coord(&invalid)); // out of bounds
 }
 
 #[test]
@@ -188,6 +190,6 @@ fn returns_an_option_for_f32_grid_get_coord() {
     let grid: Grid<f32> = Grid::<f32>::new(5, 5);
     let valid = Coord::new(3, 2);
     let invalid = Coord::new(5, 8);
-    assert_eq!(grid.get(valid), Some(&0.0)); 
-    assert_eq!(grid.get(invalid), None); // out of bounds  
+    assert_eq!(grid.get(valid), Some(&0.0));
+    assert_eq!(grid.get(invalid), None); // out of bounds
 }

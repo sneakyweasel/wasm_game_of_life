@@ -1,16 +1,16 @@
 import { Universe } from "wasm-game-of-life";
-import { memory } from "wasm-game-of-life/wasm_game_of_life_bg";
+import { memory } from "wasm-game-of-life/quantum_wave_bg";
 
-const CELL_SIZE = 10; // px
+const CELL_SIZE = 20; // px
 const ENTITY_SIZE = 3; // r, g, b values are from 0 to 255.
-const GRID_COLOR = "#CCCCCC";
+const GRID_COLOR = "#333333";
 
 // Construct the universe, and get its width and height.
-const universe = Universe.new();
+const width = 20;
+const height = 20;
+const universe = Universe.new(width, height);
 universe.setup();
 console.log(universe);
-const width = universe.width();
-const height = universe.height();
 
 // Give the canvas room for all of our cells and a 1px border
 // around each of them.
@@ -71,9 +71,9 @@ const renderLoop = () => {
   drawGrid();
   drawCells();
 
-  for (let i = 0; i < 9; i++) {
-    universe.tick();
-  }
+  // for (let i = 0; i < 9; i++) {
+  // universe.step();
+  // }
 
   animationId = requestAnimationFrame(renderLoop);
 };
@@ -116,7 +116,7 @@ const drawGrid = () => {
 
   // Horizontal lines.
   for (let j = 0; j <= height; j++) {
-    ctx.moveTo(0,                           j * (CELL_SIZE + 1) + 1);
+    ctx.moveTo(0, j * (CELL_SIZE + 1) + 1);
     ctx.lineTo((CELL_SIZE + 1) * width + 1, j * (CELL_SIZE + 1) + 1);
   }
 
@@ -138,9 +138,9 @@ const drawCells = () => {
     for (let col = 0; col < width; col++) {
       const idx = getIndex(row, col);
       const r = cells[idx];
-      const g = cells[idx+1];
-      const b = cells[idx+2];
-      
+      const g = cells[idx + 1];
+      const b = cells[idx + 2];
+
       ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
       ctx.fillRect(
         col * (CELL_SIZE + 1) + 1,

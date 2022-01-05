@@ -1,5 +1,7 @@
 use color::Color;
+use colorsys::*;
 use std::f32::consts::PI;
+use std::fmt;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Complex {
@@ -71,14 +73,49 @@ impl Complex {
         }
     }
 
-    pub fn into_hsl(&self) -> Color {
-        let hue = ((self.phi() * 360.0 / (2.0 * PI)) % 360.0) as u8;
-        let saturation = if self.radius() == 0.0 { 0 } else { 100 };
-        let lightness = (100.0 - (self.radius() * 50.0)) as u8;
-        Color::new(hue, saturation, lightness)
+    pub fn into_rgb(&self) -> Color {
+        let h = (((self.phi() * 180. / PI) + 360.) % 360.) as f64;
+        let s = if self.radius() == 0. { 0. } else { 100. };
+        let l = (100.0 - (self.radius() * 50.0)) as f64;
+        let hsl = Hsl::from((h, s, l));
+        let rgb: Rgb = Rgb::from(&hsl);
+        Color {
+            r: 255 - rgb.red() as u8,
+            g: 255 - rgb.green() as u8,
+            b: 255 - rgb.blue() as u8,
+        }
     }
+}
 
-    pub fn to_string(&self) -> String {
-        format!("{} + {}i", self.re, self.im)
+impl Default for Complex {
+    fn default() -> Self {
+        Complex::zero()
     }
+}
+
+impl fmt::Display for Complex {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        write!(f, "{} + {}i", self.re, self.im)
+    }
+}
+
+#[cfg(test)]
+#[test]
+fn display() {
+    let cx = Complex::new(1.0, 2.0);
+    assert_eq!(format!("{}", cx), "1 + 2i");
+}
+
+#[test]
+fn into_rgb() {
+    let cx = Complex::new(0.4, -0.2);
+    let color = cx.into_rgb();
+    assert_eq!(
+        color,
+        Color {
+            r: 0,
+            g: 115,
+            b: 64
+        }
+    );
 }
