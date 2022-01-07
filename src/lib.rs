@@ -73,8 +73,8 @@ impl Universe {
         self.max_tilt = 2.5;
         let _scale = 3.0;
         let _qft = 5;
-        self.add_gaussian(Coord::new(8, 8), 1.0, 0.0, 0.0, 1.0);
-        self.add_potential_cone(4, 4, 3.0, 2.0);
+        // self.add_gaussian(Coord::new(8, 8), 1.0, 0.0, 0.0, 1.0);
+        // self.add_potential_cone(4, 4, 3.0, 2.0);
         self.setup_sink_mult();
         self.setup_walls();
         self.ensure_no_positive_potential();
@@ -217,7 +217,7 @@ impl Universe {
         }
     }
 
-    /// Add a gaussian distribution to the complex field
+    /// Add a gaussian distribution to the quantum complex field
     pub fn add_gaussian(&mut self, c: Coord, sigma: f32, fx: f32, fy: f32, a_scale: f32) {
         let a: f32 = a_scale * (2.0 * PI * sigma * sigma).powf(-0.25);
         let d: f32 = 4.0 * sigma * sigma;
@@ -482,4 +482,16 @@ fn setup() {
     let mut u = Universe::new(5, 5);
     u.setup();
     println!("{}", u.quantum);
+}
+
+#[test]
+fn steps() {
+    let mut u = Universe::new(5, 5);
+    u.setup();
+    u.add_gaussian(Coord::new(2, 2), 1.0, 0.0, 0.0, 1.0);
+    for _i in 0..20 {
+        u.step();
+        println!("{}", u.quantum);
+        println!("{:?}", u.quantum.data);
+    }
 }

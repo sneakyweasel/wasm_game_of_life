@@ -6,8 +6,8 @@ const ENTITY_SIZE = 3; // r, g, b values are from 0 to 255.
 const GRID_COLOR = "#333";
 
 // Construct the universe, and get its width and height.
-const width = 40;
-const height = 40;
+const width = 60;
+const height = 60;
 const universe = Universe.new(width, height);
 universe.setup();
 console.log(universe);
@@ -42,24 +42,24 @@ const fps = new class {
     }
 
     // Find the max, min, and mean of our 100 latest timings.
-    let min = Infinity;
-    let max = -Infinity;
-    let sum = 0;
-    for (let i = 0; i < this.frames.length; i++) {
-      sum += this.frames[i];
-      min = Math.min(this.frames[i], min);
-      max = Math.max(this.frames[i], max);
-    }
-    let mean = sum / this.frames.length;
+    // let min = Infinity;
+    // let max = -Infinity;
+    // let sum = 0;
+    // for (let i = 0; i < this.frames.length; i++) {
+    //   sum += this.frames[i];
+    //   min = Math.min(this.frames[i], min);
+    //   max = Math.max(this.frames[i], max);
+    // }
+    // let mean = sum / this.frames.length;
 
     // Render the statistics.
-    this.fps.textContent = `
-Frames per Second:
-         latest = ${Math.round(fps)}
-avg of last 100 = ${Math.round(mean)}
-min of last 100 = ${Math.round(min)}
-max of last 100 = ${Math.round(max)}
-`.trim();
+    //     this.fps.textContent = `
+    // Frames per Second:
+    //          latest = ${Math.round(fps)}
+    // avg of last 100 = ${Math.round(mean)}
+    // min of last 100 = ${Math.round(min)}
+    // max of last 100 = ${Math.round(max)}
+    // `.trim();
   }
 };
 
@@ -71,10 +71,8 @@ const renderLoop = () => {
   drawGrid();
   drawCells();
 
-  // for (let i = 0; i < 9; i++) {
   universe.step();
-  // }
-
+  console.log(universe);
   animationId = requestAnimationFrame(renderLoop);
 };
 
@@ -178,6 +176,26 @@ canvas.addEventListener("click", event => {
 
   drawCells();
   drawGrid();
+});
+
+// Add keyboard event listeners.
+document.addEventListener("keypress", event => {
+  event.stopPropagation();
+  if (event.key === " ") {
+    universe.step();
+    drawCells();
+    drawGrid();
+  } else if (event.key === "p") {
+    if (isPaused()) {
+      play();
+    } else {
+      pause();
+    }
+  } else if (event.key === "r") {
+    universe.setup();
+    drawCells();
+    drawGrid();
+  }
 });
 
 play();

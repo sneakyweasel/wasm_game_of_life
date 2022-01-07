@@ -76,7 +76,7 @@ impl Complex {
     pub fn into_rgb(&self) -> Color {
         let h = (((self.phi() * 180. / PI) + 360.) % 360.) as f64;
         let s = if self.radius() == 0. { 0. } else { 100. };
-        let l = (100.0 - (self.radius() * 50.0)) as f64;
+        let l = (self.radius() * 50.0)) as f64;
         let hsl = Hsl::from((h, s, l));
         let rgb: Rgb = Rgb::from(&hsl);
         Color {
