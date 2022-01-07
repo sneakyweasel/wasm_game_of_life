@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="utf-8">
-  <title>Hello wasm-pack!</title>
+  <title>Quantum wave function</title>
   <style>
     body {
       position: absolute;
@@ -15,7 +15,8 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      background-color: #555;
+      background-color: #000;
+      color: #fff;
     }
 
     #fps {
@@ -26,10 +27,14 @@
 </head>
 
 <body>
-  <button id="play-pause"></button>
+  <div class="controls" style="display: inline-block;">
+    <button id="play-pause">⏯️</button>
+    <button id="step">⏭️</button>
+  </div>
   <div id="fps"></div>
   <canvas id="game-of-life-canvas"></canvas>
   <script src="./bootstrap.js"></script>
+  <script src="./index.js"></script>
 </body>
 
 </html>

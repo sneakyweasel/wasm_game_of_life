@@ -74,6 +74,7 @@ impl Universe {
         let _scale = 3.0;
         let _qft = 5;
         self.add_gaussian(Coord::new(8, 8), 1.0, 0.0, 0.0, 1.0);
+        self.add_potential_cone(4, 4, 3.0, 2.0);
         self.setup_sink_mult();
         self.setup_walls();
         self.ensure_no_positive_potential();
@@ -125,6 +126,28 @@ impl Universe {
             cells.push(color.r);
             cells.push(color.g);
             cells.push(color.b);
+        }
+        cells.as_ptr()
+    }
+
+    pub fn potential_level(&self) -> *const u8 {
+        let mut cells = Vec::new();
+        for cell in self.potential_level.data.iter() {
+            let color = (255. - (cell * 255.)) as u8;
+            cells.push(color);
+            cells.push(color);
+            cells.push(color);
+        }
+        cells.as_ptr()
+    }
+
+    pub fn potential_cache(&self) -> *const u8 {
+        let mut cells = Vec::new();
+        for cell in self.potential_cache.data.iter() {
+            let color = (255. - (cell * 255.)) as u8;
+            cells.push(color);
+            cells.push(color);
+            cells.push(color);
         }
         cells.as_ptr()
     }
@@ -225,6 +248,59 @@ impl Universe {
         }
     }
 
+    /// Add potential plane to the potential level field
+    // pub fn addPotentialPlane(&self, tl: f32, tr: f32, bl: f32, br: f32, mask: Grid<bool>) {
+    //     //find extremes
+    //     let top = mask.height();
+    //     let left = mask.width();
+    //     let bottom = 0;
+    //     let right = 0;
+
+    //     for x in 0..mask.width() {
+    //         for y in 0..mask.height() {
+    //             if mask.get(x, y) {
+    //                 if x < left {
+    //                     left = x;
+    //                 }
+    //                 if x > right {
+    //                     right = x;
+    //                 }
+    //                 if y < top {
+    //                     top = y;
+    //                 }
+    //                 if y > bottom {
+    //                     bottom = y;
+    //                 }
+    //             }
+    //         }
+    //     }
+    //     //add potential
+    //     let pot_width = right - left;
+
+    //     if pot_width == 0 {
+    //         pot_width = 1;
+    //     }
+    //     let pot_height = bottom - top;
+    //     if pot_height == 0 {
+    //         pot_height = 1;
+    //     }
+    //     for x in left..right {
+    //         for y in top..bottom {
+    //             if mask.get(x, y) {
+    //                 let coord = Coord::new(x as i32, y as i32);
+
+    //                 let rx = (x - left) / pot_width as f32;
+    //                 let ry = (y - top) / pot_height as f32;
+    //                 // potx0, potxh = potential at x,0 and x,height
+    //                 let potx0 = tl + (tr - tl) * rx;
+    //                 let potxh = bl + (br - bl) * rx;
+    //                 let p = potx0 + (potxh - potx0) * ry;
+    //                 self.potential_level.add(x, y, p);
+    //             }
+    //         }
+    //     }
+    // }
+
     /// Add potential cone starting from a given point
     pub fn add_potential_cone(&mut self, xc: i32, yc: i32, radius: f32, depth: f32) {
         for y in 0..self.height {
@@ -239,6 +315,32 @@ impl Universe {
                 }
             }
         }
+    }
+
+    /// Add potential well starting from a given point
+    pub fn add_potential_well(&mut self, xc: i32, yc: i32, radius: f32, core_pot: f32) {
+        let b: f32 = -core_pot / 3. / radius / radius;
+        let a: f32 = 2.0 * b * radius * radius;
+        for y in 0..self.height {
+            for x in 0..self.width {
+                let coord = Coord::new(x as i32, y as i32);
+                let dx = x as i32 - xc;
+                let dy = y as i32 - yc;
+                let r: f32 = ((dx * dx + dy * dy) as f32).powf(0.5);
+                if r < radius {
+                    self.potential_level
+                        .add(coord, b * (r * r - 3. * radius * radius));
+                } else {
+                    self.potential_level.add(coord, -a / r);
+                }
+            }
+        }
+    }
+
+    /// Toggle cell at coord
+    pub fn toggle_cell(&mut self, row: i32, column: i32) {
+        // self.add_potential_cone(row, column, 5.0, 0.1);
+        self.add_gaussian(Coord::new(column, row), 2.0, 0.0, 0.0, 1.0);
     }
 
     /// potentials > 0 are problematic
@@ -273,10 +375,10 @@ impl Universe {
         let x_pot_step = right_change / self.width as f32;
         let y_pot_step = down_change / self.height as f32;
         let mut left_edge_pot = new_top_left;
-        for y in 1..self.height {
+        for y in 0..self.height {
             left_edge_pot += y_pot_step;
             let mut current_pot = left_edge_pot;
-            for x in 1..self.width {
+            for x in 0..self.width {
                 let coord = Coord::new(x as i32, y as i32);
                 current_pot += x_pot_step;
                 self.potential_cache.set(
@@ -290,12 +392,7 @@ impl Universe {
     /// Ensure there is no positive potential
     /// Get max potential and subtract from all cells
     fn ensure_no_positive_potential(&mut self) {
-        let max_pot = self
-            .potential_level
-            .data
-            .iter()
-            .cloned()
-            .fold(1. / 0., f32::max);
+        let max_pot = self.potential_level.max();
 
         for y in 0..self.height {
             for x in 0..self.width {
@@ -343,21 +440,46 @@ fn adding_gaussian_to_quantum() {
 
 #[test]
 fn adding_potential_cone() {
-    let mut u = Universe::new(10, 10);
-    u.add_potential_cone(3, 3, 4.0, 1.0);
+    let mut u = Universe::new(5, 5);
+    u.add_potential_cone(2, 2, 3.0, 1.0);
+    u.ensure_no_positive_potential();
     println!("{}", u.potential_level);
+    println!("{:?}", u.potential_level.data);
+}
+
+#[test]
+fn adding_potential_well() {
+    let mut u = Universe::new(5, 5);
+    u.add_potential_well(2, 2, 3.0, 1.0);
+    u.ensure_no_positive_potential();
+    println!("{}", u.potential_level);
+    println!("{:?}", u.potential_level.data);
+}
+
+#[test]
+fn adding_potential_well_and_cone() {
+    let mut u = Universe::new(5, 5);
+    u.add_potential_cone(2, 2, 3.0, 1.0);
+    u.add_potential_well(2, 2, 3.0, 1.0);
+    u.ensure_no_positive_potential();
+    println!("{}", u.potential_level);
+    println!("{:?}", u.potential_level.data);
 }
 
 #[test]
 fn reset_potential_cache() {
-    let mut u = Universe::new(10, 10);
-    u.reset_potential_cache(1.0, 1.0);
+    let mut u = Universe::new(5, 5);
+    u.add_potential_cone(2, 2, 3.0, 1.0);
+    u.add_potential_well(2, 2, 3.0, 1.0);
+    u.ensure_no_positive_potential();
+    u.reset_potential_cache(0.0, 0.0);
     println!("{}", u.potential_cache);
+    println!("{:?}", u.potential_cache.data);
 }
 
 #[test]
 fn setup() {
-    let mut u = Universe::new(10, 10);
+    let mut u = Universe::new(5, 5);
     u.setup();
     println!("{}", u.quantum);
 }

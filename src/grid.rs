@@ -55,6 +55,11 @@ impl Grid<f32> {
             panic!("Invalid coord: {:?}", coord);
         }
     }
+
+    /// Retrieve max value in the grid.
+    pub fn max(&self) -> f32 {
+        self.data.iter().cloned().fold(0.0, |a, b| a.max(b))
+    }
 }
 
 /// Implement display for the cells
@@ -62,7 +67,7 @@ impl fmt::Display for Grid<f32> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for line in self.data.as_slice().chunks(self.width as usize) {
             for &cell in line {
-                let rgb = (255. - cell * 255.0) as u8;
+                let rgb = (127. + cell * 127.0) as u8;
                 if cell == 0.0 {
                     let symbol = "◼".black();
                     write!(f, "{}", symbol)?;

@@ -1,13 +1,13 @@
 import { Universe } from "wasm-game-of-life";
 import { memory } from "wasm-game-of-life/quantum_wave_bg";
 
-const CELL_SIZE = 20; // px
+const CELL_SIZE = 10; // px
 const ENTITY_SIZE = 3; // r, g, b values are from 0 to 255.
-const GRID_COLOR = "#333333";
+const GRID_COLOR = "#333";
 
 // Construct the universe, and get its width and height.
-const width = 20;
-const height = 20;
+const width = 40;
+const height = 40;
 const universe = Universe.new(width, height);
 universe.setup();
 console.log(universe);
@@ -72,7 +72,7 @@ const renderLoop = () => {
   drawCells();
 
   // for (let i = 0; i < 9; i++) {
-  // universe.step();
+  universe.step();
   // }
 
   animationId = requestAnimationFrame(renderLoop);
@@ -83,6 +83,7 @@ const isPaused = () => {
 };
 
 const playPauseButton = document.getElementById("play-pause");
+const stepButton = document.getElementById("step");
 
 const play = () => {
   playPauseButton.textContent = "⏸";
@@ -90,7 +91,7 @@ const play = () => {
 };
 
 const pause = () => {
-  playPauseButton.textContent = "▶";
+  playPauseButton.textContent = "▶️";
   cancelAnimationFrame(animationId);
   animationId = null;
 };
@@ -101,6 +102,12 @@ playPauseButton.addEventListener("click", event => {
   } else {
     pause();
   }
+});
+
+stepButton.addEventListener("click", event => {
+  universe.step();
+  drawGrid();
+  drawCells();
 });
 
 // Render the grid lines.
