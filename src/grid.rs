@@ -8,6 +8,7 @@ use std::fmt;
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Grid<T> {
     pub width: usize,
+    pub height: usize,
     pub data: Vec<T>,
 }
 
@@ -17,6 +18,7 @@ impl Grid<bool> {
     pub fn new(width: usize, height: usize) -> Self {
         Grid {
             width,
+            height,
             data: vec![false; width * height],
         }
     }
@@ -42,6 +44,7 @@ impl Grid<f32> {
     pub fn new(width: usize, height: usize) -> Self {
         Grid {
             width,
+            height,
             data: vec![0.0; width * height],
         }
     }
@@ -88,6 +91,7 @@ impl Grid<Complex> {
     pub fn new(width: usize, height: usize) -> Self {
         Grid {
             width,
+            height,
             data: vec![Complex::zero(); width * height],
         }
     }
@@ -140,6 +144,7 @@ impl Grid<Color> {
     pub fn new(width: usize, height: usize) -> Self {
         Grid {
             width,
+            height,
             data: vec![Color::white(); width * height],
         }
     }

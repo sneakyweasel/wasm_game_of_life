@@ -7,7 +7,6 @@ extern crate rand;
 extern crate wasm_bindgen;
 extern crate web_sys;
 
-mod cell;
 mod color;
 mod complex;
 mod coord;

@@ -18,6 +18,7 @@ impl Complex {
         Complex { re, im }
     }
 
+    #[allow(dead_code)]
     pub fn conj(&self) -> Self {
         Complex {
             re: self.re,
@@ -25,14 +26,17 @@ impl Complex {
         }
     }
 
+    #[allow(dead_code)]
     pub fn norm(&self) -> f32 {
         self.re * self.re + self.im * self.im
     }
 
+    #[allow(dead_code)]
     pub fn to_polar(&self) -> (f32, f32) {
         (self.norm(), self.arg())
     }
 
+    #[allow(dead_code)]
     pub fn from_polar(r: f32, theta: f32) -> Self {
         Complex {
             re: r * theta.cos(),
@@ -59,6 +63,7 @@ impl Complex {
         }
     }
 
+    #[allow(dead_code)]
     pub fn sub(&self, other: &Complex) -> Self {
         Complex {
             re: self.re - other.re,
@@ -66,6 +71,7 @@ impl Complex {
         }
     }
 
+    #[allow(dead_code)]
     pub fn mul(&self, other: &Complex) -> Self {
         Complex {
             re: self.re * other.re - self.im * other.im,
