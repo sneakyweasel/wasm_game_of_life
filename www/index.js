@@ -42,24 +42,20 @@ const fps = new class {
     }
 
     // Find the max, min, and mean of our 100 latest timings.
-    // let min = Infinity;
-    // let max = -Infinity;
-    // let sum = 0;
-    // for (let i = 0; i < this.frames.length; i++) {
-    //   sum += this.frames[i];
-    //   min = Math.min(this.frames[i], min);
-    //   max = Math.max(this.frames[i], max);
-    // }
-    // let mean = sum / this.frames.length;
+    let min = Infinity;
+    let max = -Infinity;
+    let sum = 0;
+    for (let i = 0; i < this.frames.length; i++) {
+      sum += this.frames[i];
+      min = Math.min(this.frames[i], min);
+      max = Math.max(this.frames[i], max);
+    }
+    let mean = sum / this.frames.length;
 
     // Render the statistics.
-    //     this.fps.textContent = `
-    // Frames per Second:
-    //          latest = ${Math.round(fps)}
-    // avg of last 100 = ${Math.round(mean)}
-    // min of last 100 = ${Math.round(min)}
-    // max of last 100 = ${Math.round(max)}
-    // `.trim();
+    this.fps.textContent = `
+    FPS: ${Math.round(fps)}
+    `.trim();
   }
 };
 
@@ -68,7 +64,6 @@ let animationId = null;
 const renderLoop = () => {
   fps.render();
 
-  drawGrid();
   drawCells();
 
   universe.step();
@@ -80,6 +75,7 @@ const isPaused = () => {
   return animationId === null;
 };
 
+const resetButton = document.getElementById("reset");
 const playPauseButton = document.getElementById("play-pause");
 const stepButton = document.getElementById("step");
 
@@ -94,6 +90,12 @@ const pause = () => {
   animationId = null;
 };
 
+resetButton.addEventListener("click", event => {
+  pause();
+  universe.reset();
+  drawCells();
+})
+
 playPauseButton.addEventListener("click", event => {
   if (isPaused()) {
     play();
@@ -104,29 +106,8 @@ playPauseButton.addEventListener("click", event => {
 
 stepButton.addEventListener("click", event => {
   universe.step();
-  drawGrid();
   drawCells();
 });
-
-// Render the grid lines.
-const drawGrid = () => {
-  ctx.beginPath();
-  ctx.strokeStyle = GRID_COLOR;
-
-  // Vertical lines.
-  for (let i = 0; i <= width; i++) {
-    ctx.moveTo(i * (CELL_SIZE + 1) + 1, 0);
-    ctx.lineTo(i * (CELL_SIZE + 1) + 1, (CELL_SIZE + 1) * height + 1);
-  }
-
-  // Horizontal lines.
-  for (let j = 0; j <= height; j++) {
-    ctx.moveTo(0, j * (CELL_SIZE + 1) + 1);
-    ctx.lineTo((CELL_SIZE + 1) * width + 1, j * (CELL_SIZE + 1) + 1);
-  }
-
-  ctx.stroke();
-};
 
 const getIndex = (row, column) => {
   return (row * width + column) * ENTITY_SIZE;
@@ -175,7 +156,6 @@ canvas.addEventListener("click", event => {
   universe.toggle_cell(row, col);
 
   drawCells();
-  drawGrid();
 });
 
 // Add keyboard event listeners.
@@ -184,7 +164,6 @@ document.addEventListener("keypress", event => {
   if (event.key === " ") {
     universe.step();
     drawCells();
-    drawGrid();
   } else if (event.key === "p") {
     if (isPaused()) {
       play();
@@ -192,9 +171,8 @@ document.addEventListener("keypress", event => {
       pause();
     }
   } else if (event.key === "r") {
-    universe.setup();
+    universe.reset();
     drawCells();
-    drawGrid();
   }
 });
 

@@ -111,6 +111,12 @@ impl Grid<Complex> {
         }
         colors
     }
+
+    /// Reset to default values.
+    pub fn reset(&mut self) {
+        let size = self.data.len();
+        self.data = vec![Complex::zero(); size];
+    }
 }
 
 /// Implement display for the cells

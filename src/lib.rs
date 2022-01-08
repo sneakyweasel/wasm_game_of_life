@@ -73,11 +73,14 @@ impl Universe {
         self.max_tilt = 2.5;
         let _scale = 3.0;
         let _qft = 5;
-        // self.add_gaussian(Coord::new(8, 8), 1.0, 0.0, 0.0, 1.0);
-        // self.add_potential_cone(4, 4, 3.0, 2.0);
         self.setup_sink_mult();
         self.setup_walls();
         self.ensure_no_positive_potential();
+    }
+
+    /// Universe reset.
+    pub fn reset(&mut self) {
+        self.quantum.reset();
     }
 
     /// Compute the steps throught the quantum field theory.
@@ -85,6 +88,7 @@ impl Universe {
         let dt = self.dt;
         let x_slope = 0.0;
         let y_slope = 0.0;
+
         self.reset_potential_cache(x_slope, y_slope);
 
         for y in 1..self.height - 1 {
@@ -405,7 +409,7 @@ impl Universe {
 
 #[cfg(test)]
 #[test]
-fn test_universe_creation() {
+fn create_universe() {
     let u = Universe::new(5, 5);
     assert_eq!(u.width, 5);
     assert_eq!(u.height, 5);
@@ -413,7 +417,15 @@ fn test_universe_creation() {
 }
 
 #[test]
-fn test_setup_walls_submask() {
+fn create_rect_universe() {
+    let mut u = Universe::new(8, 5);
+    u.add_gaussian(Coord::new(4, 4), 1.2, 0., 0., 1.);
+    u.setup();
+    println!("{}", u.quantum);
+}
+
+#[test]
+fn setup_walls_submask() {
     let mut u = Universe::new(5, 5);
     u.walls.set(Coord::new(1, 1), true);
     u.walls.set(Coord::new(2, 2), true);

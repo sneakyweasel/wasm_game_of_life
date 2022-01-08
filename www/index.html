@@ -15,7 +15,7 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      background-color: #000;
+      background-color: #111;
       color: #fff;
     }
 
@@ -23,18 +23,22 @@
       white-space: pre;
       font-family: monospace;
     }
+
+    .controls {
+      margin-bottom: 10px;
+    }
   </style>
 </head>
 
 <body>
   <div class="controls" style="display: inline-block;">
+    <button id="reset">⏮️</button>
     <button id="play-pause">⏯️</button>
-    <button id="step">⏭️</button>
+    <button id="step">⏩</button>
   </div>
   <div id="fps"></div>
   <canvas id="game-of-life-canvas"></canvas>
   <script src="./bootstrap.js"></script>
-  <script src="./index.js"></script>
 </body>
 
 </html>
