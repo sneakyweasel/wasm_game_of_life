@@ -32,7 +32,7 @@ impl Complex {
     }
 
     #[allow(dead_code)]
-    pub fn to_polar(&self) -> (f32, f32) {
+    pub fn polar(&self) -> (f32, f32) {
         (self.norm(), self.arg())
     }
 
@@ -79,11 +79,10 @@ impl Complex {
         }
     }
 
-    pub fn into_rgb(&self) -> Color {
+    pub fn rgb(&self) -> Color {
         let h = (((self.phi() * 180. / PI) + 360.) % 360.) as f64;
         let s = if self.radius() == 0. { 0. } else { 100. };
-        //let l = (100. - (self.radius() * 50.0)) as f64;
-        let l = 50.;
+        let l = (100. - (self.radius() * 50.0)) as f64;
         let hsl = Hsl::from((h, s, l));
         let rgb: Rgb = Rgb::from(&hsl);
         Color {
@@ -114,9 +113,9 @@ fn display() {
 }
 
 #[test]
-fn into_rgb() {
+fn convert_to_rgb() {
     let cx = Complex::new(0.4, -0.2);
-    let color = cx.into_rgb();
+    let color = cx.rgb();
     assert_eq!(
         color,
         Color {

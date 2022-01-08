@@ -125,7 +125,7 @@ impl Universe {
     pub fn cells(&self) -> *const u8 {
         let mut cells = Vec::new();
         for cell in self.quantum.data.iter() {
-            let color = cell.into_rgb();
+            let color = cell.rgb();
             cells.push(color.r);
             cells.push(color.g);
             cells.push(color.b);

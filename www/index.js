@@ -160,7 +160,7 @@ canvas.addEventListener("click", event => {
 
 // Add keyboard event listeners.
 document.addEventListener("keypress", event => {
-  event.stopPropagation();
+  event.preventDefault();
   if (event.key === " ") {
     universe.step();
     drawCells();

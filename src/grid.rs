@@ -109,9 +109,9 @@ impl Grid<Complex> {
     #[allow(dead_code)]
     /// Convert quantum to rgb colors.
     pub fn into_cells(self) -> Grid<Color> {
-        let mut colors: Grid<Color> = Grid::<Color>::new(self.width, self.height());
+        let mut colors: Grid<Color> = Grid::<Color>::new(self.width, self.height);
         for (i, c) in self.data.iter().enumerate() {
-            colors.data[i] = c.into_rgb();
+            colors.data[i] = c.rgb();
         }
         colors
     }
@@ -127,8 +127,8 @@ impl Grid<Complex> {
 impl fmt::Display for Grid<Complex> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for line in self.data.as_slice().chunks(self.width as usize) {
-            for &c in line {
-                let color = c.into_rgb();
+            for &complex in line {
+                let color = complex.rgb();
                 let symbol = "◼".truecolor(color.r, color.g, color.b);
                 write!(f, "{}", symbol)?;
             }
@@ -170,14 +170,9 @@ impl<T> Grid<T> {
         }
     }
 
-    /// Grid height.
-    pub fn height(&self) -> usize {
-        self.data.len() / self.width
-    }
-
     /// Returns true if the coord is valid
     pub fn is_valid_coord(&self, coord: &Coord) -> bool {
-        coord.x < self.width as i32 && coord.x >= 0 && coord.y < self.width as i32 && coord.y >= 0
+        coord.x < self.width as i32 && coord.x >= 0 && coord.y < self.height as i32 && coord.y >= 0
     }
 
     /// Get neighbors of the given coord.
@@ -194,11 +189,11 @@ impl<T> Grid<T> {
 #[cfg(test)]
 #[test]
 fn is_valid_coord_for_a_grid() {
-    let grid: Grid<f32> = Grid::<f32>::new(5, 5);
-    let valid = Coord::new(3, 2);
+    let grid: Grid<f32> = Grid::<f32>::new(8, 5);
+    let valid = Coord::new(7, 2);
     let invalid = Coord::new(5, 8);
     assert!(grid.is_valid_coord(&valid));
-    assert!(!grid.is_valid_coord(&invalid)); // out of bounds
+    assert!(!grid.is_valid_coord(&invalid));
 }
 
 #[test]
@@ -207,5 +202,5 @@ fn returns_an_option_for_f32_grid_get_coord() {
     let valid = Coord::new(3, 2);
     let invalid = Coord::new(5, 8);
     assert_eq!(grid.get(valid), Some(&0.0));
-    assert_eq!(grid.get(invalid), None); // out of bounds
+    assert_eq!(grid.get(invalid), None);
 }
