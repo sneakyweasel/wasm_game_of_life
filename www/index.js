@@ -6,9 +6,11 @@ const ENTITY_SIZE = 3; // r, g, b values are from 0 to 255.
 const GRID_COLOR = "#333";
 
 // Construct the universe, and get its width and height.
-const width = 60;
-const height = 60;
+const width = 80;
+const height = 40;
 const universe = Universe.new(width, height);
+
+let active_field = "quantum";
 universe.setup();
 console.log(universe);
 
@@ -78,6 +80,8 @@ const isPaused = () => {
 const resetButton = document.getElementById("reset");
 const playPauseButton = document.getElementById("play-pause");
 const stepButton = document.getElementById("step");
+const quantumButton = document.getElementById("quantum");
+const potentialButton = document.getElementById("potential");
 
 const play = () => {
   playPauseButton.textContent = "⏸";
@@ -109,35 +113,62 @@ stepButton.addEventListener("click", event => {
   drawCells();
 });
 
+quantumButton.addEventListener("click", event => {
+  active_field = "quantum";
+  drawCells();
+});
+
+potentialButton.addEventListener("click", event => {
+  active_field = "potential";
+  drawCells();
+});
+
 const getIndex = (row, column) => {
-  return (row * width + column) * ENTITY_SIZE;
+  return (row * width + column);
 };
 
 // Render cells.
 const drawCells = () => {
-  const cellsPtr = universe.cells();
-  const cells = new Uint8Array(memory.buffer, cellsPtr, width * height * ENTITY_SIZE);
 
-  ctx.beginPath();
-
-  for (let row = 0; row < height; row++) {
-    for (let col = 0; col < width; col++) {
-      const idx = getIndex(row, col);
-      const r = cells[idx];
-      const g = cells[idx + 1];
-      const b = cells[idx + 2];
-
-      ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
-      ctx.fillRect(
-        col * (CELL_SIZE + 1) + 1,
-        row * (CELL_SIZE + 1) + 1,
-        CELL_SIZE,
-        CELL_SIZE
-      );
+  if (active_field == "quantum") {
+    const cellsPtr = universe.quantum_ptr();
+    const cells = new Uint8Array(memory.buffer, cellsPtr, width * height * ENTITY_SIZE);
+    ctx.beginPath();
+    for (let row = 0; row < height; row++) {
+      for (let col = 0; col < width; col++) {
+        const idx = getIndex(row, col) * ENTITY_SIZE;
+        const r = cells[idx];
+        const g = cells[idx + 1];
+        const b = cells[idx + 2];
+        ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+        ctx.fillRect(
+          col * (CELL_SIZE + 1) + 1,
+          row * (CELL_SIZE + 1) + 1,
+          CELL_SIZE,
+          CELL_SIZE
+        );
+      }
+      ctx.stroke();
     }
+  } else {
+    const cellsPtr = universe.potential_level_ptr();
+    const cells = new Float32Array(memory.buffer, cellsPtr, width * height);
+    ctx.beginPath();
+    for (let row = 0; row < height; row++) {
+      for (let col = 0; col < width; col++) {
+        const idx = getIndex(row, col);
+        const f = 127 + cells[idx] * 127;
+        ctx.fillStyle = `rgb(${f}, ${f}, ${f})`;
+        ctx.fillRect(
+          col * (CELL_SIZE + 1) + 1,
+          row * (CELL_SIZE + 1) + 1,
+          CELL_SIZE,
+          CELL_SIZE
+        );
+      }
+    }
+    ctx.stroke();
   }
-
-  ctx.stroke();
 };
 
 // Click handler.
@@ -150,10 +181,11 @@ canvas.addEventListener("click", event => {
   const canvasLeft = (event.clientX - boundingRect.left) * scaleX;
   const canvasTop = (event.clientY - boundingRect.top) * scaleY;
 
-  const row = Math.min(Math.floor(canvasTop / (CELL_SIZE + 1)), height - 1);
-  const col = Math.min(Math.floor(canvasLeft / (CELL_SIZE + 1)), width - 1);
+  const y = Math.min(Math.floor(canvasTop / (CELL_SIZE + 1)), height - 1);
+  const x = Math.min(Math.floor(canvasLeft / (CELL_SIZE + 1)), width - 1);
 
-  universe.toggle_cell(row, col);
+  console.log(`Click at ${x}:${y} in field ${active_field}`);
+  universe.toggle_cell(x, y, active_field);
 
   drawCells();
 });
